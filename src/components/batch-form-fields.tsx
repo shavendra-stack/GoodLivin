@@ -8,6 +8,10 @@ import { Select } from "@/components/ui/select";
 type ProductOption = { id: string; productCode: string; name: string; status: string };
 type SkuOption = { id: string; productId: string; skuCode: string; sellableName: string; status: string };
 
+function productHasSku(productId: string, skus: SkuOption[]) {
+  return skus.some((sku) => sku.productId === productId);
+}
+
 export function BatchProductSkuFields({
   products,
   skus,
@@ -19,7 +23,8 @@ export function BatchProductSkuFields({
   initialProductId?: string | null;
   initialSkuId?: string | null;
 }) {
-  const firstProductId = initialProductId || products[0]?.id || "";
+  const firstProductWithSku = products.find((product) => productHasSku(product.id, skus));
+  const firstProductId = initialProductId || firstProductWithSku?.id || products[0]?.id || "";
   const [productId, setProductId] = useState(firstProductId);
   const filteredSkus = useMemo(() => skus.filter((sku) => sku.productId === productId), [productId, skus]);
   const initialSkuBelongsToProduct = Boolean(initialSkuId && filteredSkus.some((sku) => sku.id === initialSkuId));
@@ -40,7 +45,7 @@ export function BatchProductSkuFields({
           {products.length === 0 ? <option value="">No active products available</option> : null}
           {products.map((product) => (
             <option key={product.id} value={product.id}>
-              {product.name} · {product.productCode}
+              {product.name} · {product.productCode}{productHasSku(product.id, skus) ? "" : " · needs SKU"}
             </option>
           ))}
         </Select>
@@ -58,7 +63,7 @@ export function BatchProductSkuFields({
           ))}
         </Select>
         <span className="block text-xs leading-5 text-slate-400">
-          {filteredSkus.length > 0 ? "Only SKUs belonging to the selected product are shown." : "Create a sellable SKU for this product before saving a batch."}
+          {filteredSkus.length > 0 ? "Only SKUs belonging to the selected product are shown." : "This product has no active sellable SKUs yet. Add a SKU before saving a batch."}
         </span>
         {productId ? (
           <Link href={`/products?skuProduct=${productId}&skuEdit=new#sku-form`} className="mt-2 inline-flex text-xs font-semibold text-forest-700 hover:text-forest-900">
